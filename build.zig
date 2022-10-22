@@ -13,13 +13,12 @@ pub fn build(b: *std.build.Builder) void {
     const mode = b.standardReleaseOptions();
 
     // const exe = b.addExecutable("hello-world-zig", "src/main.zig");
-    const exe = b.addSharedLibrary("hello-world-zig", "src/main.zig", b.version(0, 0, 0));
+    const lib = b.addSharedLibrary("hello-world-zig", "src/main.zig", b.version(0, 0, 0));
 
-    exe.setTarget(target);
-    exe.setBuildMode(mode);
-    exe.use_stage1 = true;
+    lib.setTarget(target);
+    lib.setBuildMode(mode);
+    lib.use_stage1 = true;
     // deps.addAllTo(exe);
-    exe.install();
     // const run_cmd = exe.run();
     // run_cmd.step.dependOn(b.getInstallStep());
     // if (b.args) |args| {
@@ -27,16 +26,22 @@ pub fn build(b: *std.build.Builder) void {
     // }
 
     const sqlite = b.addStaticLibrary("sqlite", null);
+    sqlite.setTarget(target);
+    sqlite.setBuildMode(mode);
+    sqlite.linkLibC();
+    sqlite.linkSystemLibrary("c");
     sqlite.addCSourceFile("third_party/zig-sqlite/c/sqlite3.c", &[_][]const u8{
         "-std=c99",                     "-Oz",
         "-DSQLITE_OMIT_LOAD_EXTENSION", "-DSQLITE_DISABLE_LFS",
         "-DSQLITE_ENABLE_FTS3",         "-DSQLITE_ENABLE_FTS3_PARENTHESIS",
         "-DSQLITE_THREADSAFE=0",        "-DSQLITE_ENABLE_NORMALIZE",
     });
-    sqlite.linkLibC();
-    exe.linkLibrary(sqlite);
-    exe.addPackagePath("sqlite", "third_party/zig-sqlite/sqlite.zig");
-    exe.addIncludePath("third_party/zig-sqlite/c");
+    lib.linkLibrary(sqlite);
+    lib.addPackagePath("sqlite", "third_party/zig-sqlite/sqlite.zig");
+    lib.addIncludePath("third_party/zig-sqlite/c");
+
+    lib.install();
+    sqlite.install();
 
     // const run_step = b.step("run", "Run the app");
     // run_step.dependOn(&run_cmd.step);
